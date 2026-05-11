@@ -1,98 +1,263 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# SGCM — Sistema de Gestão de Clínica Médica
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST para gerenciamento de usuários, especialidades e agendamentos de uma clínica médica. Desenvolvida com NestJS, TypeORM e SQLite como projeto acadêmico da disciplina de Desenvolvimento Web — UFMS.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Tecnologias
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Tecnologia | Versão |
+|---|---|
+| Node.js | 20.x (LTS) |
+| NestJS | 11.x |
+| TypeORM | 0.3.x |
+| SQLite (better-sqlite3) | — |
+| TypeScript | 5.x |
 
-## Project setup
+---
+
+## Pré-requisitos
+
+- Node.js 20 LTS — recomendado usar [nvm](https://github.com/nvm-sh/nvm)
+- npm 10+
+
+Se usar nvm, rode na raiz do projeto:
 
 ```bash
-$ npm install
+nvm use
 ```
 
-## Compile and run the project
+O arquivo `.nvmrc` já está configurado com a versão correta.
+
+---
+
+## Instalação
 
 ```bash
-# development
-$ npm run start
+# clonar o repositório
+git clone https://github.com/willcharantola/sgcm-clinica-saude.git
+cd sgcm-clinica-saude
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# instalar dependências
+npm install
 ```
 
-## Run tests
+---
+
+## Variáveis de ambiente
+
+Copie o arquivo de exemplo e ajuste se necessário:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+O arquivo `.env.example` contém:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```env
+PORT=3000
+DATABASE_PATH=./database.db
+# JWT_SECRET=     # será necessário na Etapa 2
+# JWT_EXPIRES_IN= # será necessário na Etapa 2
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Os valores padrão já funcionam sem nenhuma alteração para rodar localmente.
+
+---
+
+## Executando o projeto
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# modo desenvolvimento (com hot reload)
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+A aplicação estará disponível em `http://localhost:3000`.
 
-## Resources
+O banco de dados SQLite (`database.db`) é criado automaticamente na raiz do projeto na primeira execução. O arquivo já está presente no repositório com dados de exemplo para facilitar os testes.
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Documentação da API
 
-## Support
+Com o projeto rodando, acesse o Swagger em:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```
+http://localhost:3000/api
+```
 
-## Stay in touch
+A documentação inclui todos os endpoints com exemplos de requisição, resposta de sucesso e respostas de erro no formato RFC 7807.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## Estrutura do projeto
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```
+src/
+├── common/
+│   └── filters/
+│       └── http-exception.filter.ts   # filtro global RFC 7807
+├── modules/
+│   ├── users/
+│   │   ├── dto/                       # DTOs de entrada e resposta
+│   │   ├── entities/                  # User, Admin, Doctor, Patient (STI)
+│   │   ├── users.controller.ts
+│   │   ├── doctors.controller.ts
+│   │   ├── patients.controller.ts
+│   │   ├── users.service.ts
+│   │   └── users.module.ts
+│   ├── specialties/
+│   │   ├── dto/
+│   │   ├── entities/                  # Specialty, DoctorSpecialty
+│   │   ├── specialties.controller.ts
+│   │   ├── specialties.service.ts
+│   │   └── specialties.module.ts
+│   └── schedules/
+│       ├── dto/
+│       ├── entities/                  # Schedule, InPerson, Online, Home (STI)
+│       ├── schedules.controller.ts
+│       ├── schedules.service.ts
+│       └── schedules.module.ts
+├── app.module.ts
+└── main.ts
+```
+
+---
+
+## Endpoints principais
+
+### Usuários
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/users` | Criar usuário (ADMIN, DOCTOR ou PATIENT) |
+| `GET` | `/users` | Listar usuários com filtro por `type` |
+| `GET` | `/users/:id` | Buscar usuário por ID |
+| `PUT` | `/users/:id` | Atualizar usuário |
+| `DELETE` | `/users/:id` | Inativar usuário |
+
+### Médicos
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/doctors` | Listar médicos com especialidades |
+| `GET` | `/doctors/:id` | Buscar médico por ID com especialidades |
+| `GET` | `/doctors/:id/specialties` | Listar especialidades do médico |
+| `POST` | `/doctors/:id/specialties` | Associar especialidade ao médico |
+| `DELETE` | `/doctors/:id/specialties/:specialtyId` | Desassociar especialidade |
+| `GET` | `/doctors/:id/schedules` | Listar agendamentos do médico |
+
+### Pacientes
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/patients` | Listar pacientes |
+| `GET` | `/patients/:id` | Buscar paciente por ID |
+| `GET` | `/patients/:id/schedules` | Listar agendamentos do paciente |
+
+### Especialidades
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/specialties` | Criar especialidade |
+| `GET` | `/specialties` | Listar especialidades |
+| `GET` | `/specialties/:id` | Buscar especialidade por ID |
+| `PUT` | `/specialties/:id` | Atualizar especialidade |
+| `DELETE` | `/specialties/:id` | Excluir especialidade |
+| `GET` | `/specialties/:id/doctors` | Listar médicos da especialidade |
+
+### Agendamentos
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/schedules` | Criar agendamento (IN_PERSON, ONLINE ou HOME) |
+| `GET` | `/schedules` | Listar agendamentos com filtros |
+| `GET` | `/schedules/:id` | Buscar agendamento por ID |
+| `PUT` | `/schedules/:id` | Atualizar dados do agendamento |
+| `PATCH` | `/schedules/:id/status` | Atualizar status (CONFIRMED ou CANCELLED) |
+| `DELETE` | `/schedules/:id` | Excluir agendamento |
+
+---
+
+## Parâmetros de listagem
+
+Todos os endpoints de listagem suportam os seguintes query params:
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `page` | number | 1 | Número da página |
+| `limit` | number | 20 | Registros por página |
+| `sort` | string | — | Ordenação no formato `campo:asc` ou `campo:desc` |
+| `search` | string | — | Busca textual nos campos relevantes |
+
+**Exemplo:**
+
+```
+GET /schedules?status=CONFIRMED&sort=scheduledAt:asc&page=1&limit=10
+GET /doctors?search=Ana&sort=name:asc
+GET /users?type=PATIENT&page=2&limit=5
+```
+
+---
+
+## Formato de resposta
+
+### Listagens
+
+```json
+{
+  "data": [],
+  "meta": {
+    "totalItems": 20,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 2
+  }
+}
+```
+
+### Erros — RFC 7807
+
+```json
+{
+  "type": "https://sgcm.example.com/problems/not-found",
+  "title": "Recurso não encontrado",
+  "status": 404,
+  "detail": "Médico com id 15 não foi encontrado.",
+  "instance": "/doctors/15",
+  "method": "GET",
+  "timestamp": "2026-05-10T10:00:00.000Z"
+}
+```
+
+---
+
+## Regras de negócio principais
+
+- Senhas armazenadas com hash `bcrypt` — nunca em texto puro
+- `password` e `refreshToken` nunca aparecem em nenhuma resposta
+- E-mail único no sistema independentemente do perfil
+- CRM único para médicos, CPF único para pacientes
+- Agendamentos não podem ser criados com data no passado
+- Um médico não pode ter dois agendamentos `CONFIRMED` no mesmo horário
+- Transições de status permitidas: `PENDING → CONFIRMED`, `PENDING → CANCELLED`, `CONFIRMED → CANCELLED`
+- `COMPLETED` não pode ser definido via API — ocorre internamente na Etapa 3
+- Especialidade com médicos associados não pode ser removida
+- Usuário com agendamentos `PENDING` ou `CONFIRMED` não pode ser inativado
+
+---
+
+## Integrantes
+
+| Nome | GitHub |
+|---|---|
+| Willian Charantola da Costa | [@willian](https://github.com/willcharantola) |
+| João Pedro de Melo Hentz | [@joaopedro](https://github.com/joaohentz) |
+
+---
+
+## Etapas do projeto
+
+- [x] **Etapa 1** — Modelagem, CRUD, regras de negócio, Swagger
+- [ ] **Etapa 2** — Autenticação JWT, controle de acesso por perfil, middlewares
+- [ ] **Etapa 3** — Atendimentos, procedimentos, prontuários e laudos
