@@ -302,4 +302,21 @@ async findPatient(id: number) {
   }
   return patient;
 }
+
+
+
+async findByEmail(email: string) {
+  return this.userRepository.findOne({ where: { email } });
 }
+
+async findByRefreshToken(refreshToken: string) {
+  // Busca por valor direto — o token JWT já é criptograficamente
+  // aleatório, tornando desnecessário um segundo hash neste caso
+  return this.userRepository.findOne({ where: { refreshToken } });
+}
+
+async updateRefreshToken(userId: number, refreshToken: string | null) {
+  await this.userRepository.update(userId, { refreshToken });
+}
+
+}  
