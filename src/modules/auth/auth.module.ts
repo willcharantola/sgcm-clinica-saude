@@ -6,9 +6,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
-// A JwtStrategy será adicionada na branch feature/jwt-strategy
-// e registrada aqui via providers depois do merge
+
+
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { UsersModule } from '../users/users.module';
     UsersModule, // dependência unidirecional: Auth → Users (nunca o contrário)
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
   exports: [JwtModule], // exporta JwtModule para uso em outros módulos se necessário
 })
 export class AuthModule {}
