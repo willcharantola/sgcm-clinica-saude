@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -6,11 +6,11 @@ import { UsersModule } from './modules/users/users.module';
 import { SpecialtiesModule } from './modules/specialties/specialties.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { LoggingMiddleware } from './common/middlewares/logging.middleware';
 
 @Module({
   imports: [
-    // Valida variáveis de ambiente na inicialização — falha com mensagem
-    // clara se alguma obrigatória estiver ausente
+   
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
@@ -33,4 +33,10 @@ import { AuthModule } from './modules/auth/auth.module';
     AuthModule,
   ],
 })
-export class AppModule {}
+
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Aplica a todas as rotas — nenhuma requisição passa sem ser registrada
+    consumer.apply(LoggingMiddleware).forRoutes('*');
+  }
+}
