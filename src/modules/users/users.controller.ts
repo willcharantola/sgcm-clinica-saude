@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -24,13 +25,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FindUsersQueryDto } from './dto/find-users-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { plainToInstance } from 'class-transformer';
+import {Roles} from '../../common/decorators/roles.decorators';
 
+@ApiBearerAuth('access-token')
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles('ADMIN') 
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Criar usuário',
@@ -46,6 +50,7 @@ export class UsersController {
   }
 
   @Get()
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Listar usuários',
     description: 'Lista usuários ativos com filtro por perfil e paginação.',

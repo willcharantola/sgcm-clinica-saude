@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { Patient } from './entities/patient.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FindUsersQueryDto } from './dto/find-users-query.dto';
+import { UserPayload } from '../../common/types/user-payload.type';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -78,26 +80,21 @@ export class UsersService {
 
     const qb = this.userRepository.createQueryBuilder('user');
 
-    // filtro de perfil
     if (type) {
       qb.andWhere('user.type = :type', { type });
     }
 
-    // filtro de busca textual
     if (search) {
       qb.andWhere('(user.name LIKE :search OR user.email LIKE :search)', {
         search: `%${search}%`,
       });
     }
 
-    // usuários inativos não aparecem na listagem padrão
     qb.andWhere('user.isActive = :isActive', { isActive: true });
 
-    // ordenação
     const [sortField, sortDir] = this.parseSortParam(sort, 'user.name');
     qb.orderBy(sortField, sortDir);
 
-    // paginação
     qb.skip((page - 1) * limit).take(limit);
 
     const [data, totalItems] = await qb.getManyAndCount();
@@ -115,7 +112,15 @@ export class UsersService {
 
   // ─── buscar por id ────────────────────────────────────────────────────────
 
-  async findOne(id: number): Promise<User> {
+  // currentUser é opcional para preservar callers internos (findOneOrFail, etc.)
+  async findOne(id: number, currentUser?: UserPayload): Promise<User> {
+    // Controle por recurso: não-admins só podem ver o próprio perfil
+    if (currentUser && currentUser.type !== 'ADMIN' && currentUser.sub !== id) {
+      throw new ForbiddenException(
+        'Você não tem permissão para acessar este recurso.',
+      );
+    }
+
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
       throw new NotFoundException(`Usuário com id ${id} não foi encontrado.`);
@@ -123,14 +128,21 @@ export class UsersService {
     return user;
   }
 
-  // método público para outros módulos verificarem existência
+  // método público para outros módulos verificarem existência (sem controle de acesso)
   async findOneOrFail(id: number): Promise<User> {
     return this.findOne(id);
   }
 
   // ─── atualizar ────────────────────────────────────────────────────────────
 
-  async update(id: number, dto: UpdateUserDto): Promise<User> {
+  async update(id: number, dto: UpdateUserDto, currentUser?: UserPayload): Promise<User> {
+    // Controle por recurso: não-admins só podem atualizar o próprio perfil
+    if (currentUser && currentUser.type !== 'ADMIN' && currentUser.sub !== id) {
+      throw new ForbiddenException(
+        'Você não tem permissão para atualizar este recurso.',
+      );
+    }
+
     const user = await this.findOne(id);
 
     if (dto.email && dto.email !== user.email) {
@@ -147,7 +159,12 @@ export class UsersService {
 
   // ─── remover ──────────────────────────────────────────────────────────────
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, currentUser?: UserPayload): Promise<void> {
+    // Admin não pode excluir a própria conta
+    if (currentUser && currentUser.sub === id) {
+      throw new ForbiddenException('Você não pode excluir sua própria conta.');
+    }
+
     const user = await this.findOne(id);
     await this.assertNoActiveSchedules(id);
 
@@ -192,11 +209,7 @@ export class UsersService {
     }
   }
 
-  // verifica agendamentos ativos — PENDING ou CONFIRMED
-  // estruturado para receber novas restrições nas etapas seguintes
   private async assertNoActiveSchedules(userId: number): Promise<void> {
-    // import dinâmico para evitar dependência circular com SchedulesModule
-    // na Etapa 2/3 isso será substituído por injeção via SchedulesService
     const { Schedule, ScheduleStatus } = await import(
       '../schedules/entities/schedule.entity.js'
     );
@@ -220,7 +233,6 @@ export class UsersService {
     }
   }
 
-  // parser de sort: "name:asc" → ['user.name', 'ASC']
   private parseSortParam(
     sort: string | undefined,
     defaultField: string,
@@ -233,69 +245,77 @@ export class UsersService {
     ];
   }
 
+  // ─── médicos ──────────────────────────────────────────────────────────────
 
-async findDoctors(query: FindUsersQueryDto) {
-  const { page = 1, limit = 20, sort, search } = query;
+  async findDoctors(query: FindUsersQueryDto) {
+    const { page = 1, limit = 20, sort, search } = query;
 
-  const qb = this.doctorRepository
-    .createQueryBuilder('doctor')
-    .leftJoinAndSelect('doctor.doctorSpecialties', 'ds')
-    .leftJoinAndSelect('ds.specialty', 'specialty')
-    .where('doctor.isActive = true');
+    const qb = this.doctorRepository
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'ds')
+      .leftJoinAndSelect('ds.specialty', 'specialty')
+      .where('doctor.isActive = true');
 
-  if (search) {
-    qb.andWhere('doctor.name LIKE :search', { search: `%${search}%` });
+    if (search) {
+      qb.andWhere('doctor.name LIKE :search', { search: `%${search}%` });
+    }
+
+    const [sortField, sortDir] = this.parseSortParam(sort, 'doctor.name');
+    qb.orderBy(sortField, sortDir);
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, totalItems] = await qb.getManyAndCount();
+
+    return {
+      data,
+      meta: { totalItems, page, limit, totalPages: Math.ceil(totalItems / limit) },
+    };
   }
 
-  const [sortField, sortDir] = this.parseSortParam(sort, 'doctor.name');
-  qb.orderBy(sortField, sortDir);
-  qb.skip((page - 1) * limit).take(limit);
-
-  const [data, totalItems] = await qb.getManyAndCount();
-
-  return {
-    data,
-    meta: { totalItems, page, limit, totalPages: Math.ceil(totalItems / limit) },
-  };
-}
-
-async findDoctor(id: number) {
-  const doctor = await this.doctorRepository.findOne({
-    where: { id },
-    relations: { doctorSpecialties: { specialty: true } },
-  });
-  if (!doctor) {
-    throw new NotFoundException(`Médico com id ${id} não foi encontrado.`);
-  }
-  return doctor;
-}
-
-// adicionar em users.service.ts
-
-async findPatients(query: FindUsersQueryDto) {
-  const { page = 1, limit = 20, sort, search } = query;
-
-  const qb = this.patientRepository
-    .createQueryBuilder('patient')
-    .where('patient.isActive = true');
-
-  if (search) {
-    qb.andWhere('patient.name LIKE :search', { search: `%${search}%` });
+  async findDoctor(id: number) {
+    const doctor = await this.doctorRepository.findOne({
+      where: { id },
+      relations: { doctorSpecialties: { specialty: true } },
+    });
+    if (!doctor) {
+      throw new NotFoundException(`Médico com id ${id} não foi encontrado.`);
+    }
+    return doctor;
   }
 
-  const [sortField, sortDir] = this.parseSortParam(sort, 'patient.name');
-  qb.orderBy(sortField, sortDir);
-  qb.skip((page - 1) * limit).take(limit);
+  // ─── pacientes ────────────────────────────────────────────────────────────
 
-  const [data, totalItems] = await qb.getManyAndCount();
+  async findPatients(query: FindUsersQueryDto) {
+    const { page = 1, limit = 20, sort, search } = query;
 
-  return {
-    data,
-    meta: { totalItems, page, limit, totalPages: Math.ceil(totalItems / limit) },
-  };
-}
+    const qb = this.patientRepository
+      .createQueryBuilder('patient')
+      .where('patient.isActive = true');
 
-async findPatient(id: number) {
+    if (search) {
+      qb.andWhere('patient.name LIKE :search', { search: `%${search}%` });
+    }
+
+    const [sortField, sortDir] = this.parseSortParam(sort, 'patient.name');
+    qb.orderBy(sortField, sortDir);
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, totalItems] = await qb.getManyAndCount();
+
+    return {
+      data,
+      meta: { totalItems, page, limit, totalPages: Math.ceil(totalItems / limit) },
+    };
+  }
+
+async findPatient(id: number, currentUser?: UserPayload) {
+  // Paciente só pode acessar o próprio perfil
+  if (currentUser && currentUser.type === 'PATIENT' && currentUser.sub !== id) {
+    throw new ForbiddenException(
+      'Você não tem permissão para acessar este recurso.',
+    );
+  }
+
   const patient = await this.patientRepository.findOneBy({ id });
   if (!patient) {
     throw new NotFoundException(`Paciente com id ${id} não foi encontrado.`);
@@ -303,20 +323,19 @@ async findPatient(id: number) {
   return patient;
 }
 
+  // ─── auth ─────────────────────────────────────────────────────────────────
 
+  async findByEmail(email: string) {
+    return this.userRepository.findOne({ where: { email } });
+  }
 
-async findByEmail(email: string) {
-  return this.userRepository.findOne({ where: { email } });
+  async findByRefreshToken(refreshToken: string) {
+    return this.userRepository.findOne({ where: { refreshToken } });
+  }
+
+  async updateRefreshToken(userId: number, refreshToken: string | null) {
+    await this.userRepository.update(userId, {
+    refreshToken: refreshToken ?? undefined,
+  });
 }
-
-async findByRefreshToken(refreshToken: string) {
-  // Busca por valor direto — o token JWT já é criptograficamente
-  // aleatório, tornando desnecessário um segundo hash neste caso
-  return this.userRepository.findOne({ where: { refreshToken } });
 }
-
-async updateRefreshToken(userId: number, refreshToken: string | null) {
-  await this.userRepository.update(userId, { refreshToken });
-}
-
-}  
