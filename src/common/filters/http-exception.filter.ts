@@ -4,11 +4,14 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+
+  private readonly logger = new Logger(HttpExceptionFilter.name);
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -36,6 +39,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = HttpStatus.CONFLICT;
       title = 'Conflito de recurso';
       detail = 'Violação de unicidade: já existe um registro com esses dados.';
+    }  else {
+      // Erro não previsto: sempre loga internamente
+      this.logger.error(exception);
+    
     }
 
     response.status(status).json({
