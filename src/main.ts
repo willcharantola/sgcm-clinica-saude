@@ -7,6 +7,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import helmet from 'helmet';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
 
@@ -45,7 +46,10 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
 
   // Serialização global — garante @Exclude/@Expose nos DTOs de resposta
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(reflector),
+     new TransformInterceptor()
+  );
 
   app.useGlobalGuards(
     new JwtAuthGuard(reflector),
