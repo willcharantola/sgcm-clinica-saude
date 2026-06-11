@@ -12,12 +12,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
+  
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,7 +29,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { plainToInstance } from 'class-transformer';
 import {Roles} from '../../common/decorators/roles.decorators';
 
-@ApiBearerAuth('access-token')
+@ApiAuthResponses()
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
