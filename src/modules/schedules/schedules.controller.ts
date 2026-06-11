@@ -13,7 +13,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 
 import { SchedulesService } from './schedules.service';
@@ -22,13 +22,18 @@ import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { UpdateScheduleStatusDto } from './dto/update-schedule-status.dto';
 import { FindSchedulesQueryDto } from './dto/find-schedules-query.dto';
 import { ScheduleResponseDto } from './dto/schedule-response.dto';
+import { Roles } from '../../common/decorators/roles.decorators';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UserPayload } from '../../common/types/user-payload.type';
 
+@ApiBearerAuth('access-token')
 @ApiTags('Schedules')
 @Controller('schedules')
 export class SchedulesController {
   constructor(private readonly schedulesService: SchedulesService) {}
 
   @Post()
+  @Roles('ADMIN', 'PATIENT')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Criar agendamento',
@@ -39,12 +44,16 @@ export class SchedulesController {
   @ApiResponse({ status: 400, description: 'Dados inválidos ou data no passado.' })
   @ApiResponse({ status: 404, description: 'Médico ou paciente não encontrado.' })
   @ApiResponse({ status: 409, description: 'Conflito de horário para o médico.' })
-  async create(@Body() dto: CreateScheduleDto): Promise<ScheduleResponseDto> {
-    const schedule = await this.schedulesService.create(dto);
+  async create(
+    @Body() dto: CreateScheduleDto,
+    @CurrentUser() user: UserPayload, // ← adicionado
+  ): Promise<ScheduleResponseDto> {
+    const schedule = await this.schedulesService.create(dto, user); // ← passar user
     return plainToInstance(ScheduleResponseDto, schedule);
   }
 
   @Get()
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Listar agendamentos',
     description: 'Lista com filtros por doctorId, patientId, status, type e intervalo de datas.',
@@ -59,18 +68,21 @@ export class SchedulesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Buscar agendamento por ID' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, type: ScheduleResponseDto })
   @ApiResponse({ status: 404, description: 'Agendamento não encontrado.' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserPayload, // ← adicionado
   ): Promise<ScheduleResponseDto> {
-    const schedule = await this.schedulesService.findOne(id);
+    const schedule = await this.schedulesService.findOne(id, user); // ← passar user
     return plainToInstance(ScheduleResponseDto, schedule);
   }
 
   @Put(':id')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Atualizar agendamento',
     description: 'Atualiza dados do agendamento. Tipo, médico e paciente não podem ser alterados.',
@@ -88,6 +100,7 @@ export class SchedulesController {
   }
 
   @Patch(':id/status')
+  @Roles('ADMIN', 'PATIENT')
   @ApiOperation({
     summary: 'Atualizar status do agendamento',
     description:
@@ -100,12 +113,14 @@ export class SchedulesController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateScheduleStatusDto,
+    @CurrentUser() user: UserPayload, // ← adicionado
   ): Promise<ScheduleResponseDto> {
-    const schedule = await this.schedulesService.updateStatus(id, dto);
+    const schedule = await this.schedulesService.updateStatus(id, dto, user); // ← passar user
     return plainToInstance(ScheduleResponseDto, schedule);
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Excluir agendamento',

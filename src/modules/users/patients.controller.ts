@@ -1,3 +1,4 @@
+// src/modules/users/patients.controller.ts
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
@@ -8,7 +9,10 @@ import { FindUsersQueryDto } from './dto/find-users-query.dto';
 import { FindSchedulesQueryDto } from '../schedules/dto/find-schedules-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ScheduleResponseDto } from '../schedules/dto/schedule-response.dto';
+import { Roles } from '../../common/decorators/roles.decorators';
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
+@ApiAuthResponses()
 @ApiTags('Patients')
 @Controller('patients')
 export class PatientsController {
@@ -18,6 +22,7 @@ export class PatientsController {
   ) {}
 
   @Get()
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Listar pacientes com paginação e filtro por nome' })
   @ApiResponse({ status: 200, description: 'Lista paginada de pacientes.' })
   async findAll(@Query() query: FindUsersQueryDto) {
@@ -29,6 +34,7 @@ export class PatientsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'PATIENT')
   @ApiOperation({ summary: 'Buscar paciente por ID' })
   @ApiParam({ name: 'id', example: 2 })
   @ApiResponse({ status: 200, type: UserResponseDto })
@@ -41,6 +47,7 @@ export class PatientsController {
   }
 
   @Get(':id/schedules')
+  @Roles('ADMIN', 'PATIENT')
   @ApiOperation({ summary: 'Listar agendamentos de um paciente' })
   @ApiParam({ name: 'id', example: 2 })
   @ApiResponse({ status: 200, description: 'Lista paginada de agendamentos.' })

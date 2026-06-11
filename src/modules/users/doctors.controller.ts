@@ -11,8 +11,9 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {  ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
 import { UsersService } from './users.service';
 import { SpecialtiesService } from '../specialties/specialties.service';
@@ -24,17 +25,20 @@ import { SpecialtyResponseDto } from '../specialties/dto/specialty-response.dto'
 import { SchedulesService } from '../schedules/schedules.service';
 import { FindSchedulesQueryDto } from '../schedules/dto/find-schedules-query.dto';
 import { ScheduleResponseDto } from '../schedules/dto/schedule-response.dto';
+import {Roles} from '../../common/decorators/roles.decorators';
 
+@ApiAuthResponses()
 @ApiTags('Doctors')
 @Controller('doctors')
 export class DoctorsController {
   constructor(
     private readonly usersService: UsersService,
     private readonly specialtiesService: SpecialtiesService,
-     private readonly schedulesService: SchedulesService,
+    private readonly schedulesService: SchedulesService,
   ) {}
 
   @Get()
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({
     summary: 'Listar médicos',
     description: 'Retorna médicos ativos com especialidades. Filtro por nome e especialidade.',
@@ -49,6 +53,7 @@ export class DoctorsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Buscar médico por ID com especialidades' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, type: UserResponseDto })
@@ -61,6 +66,7 @@ export class DoctorsController {
   }
 
   @Get(':id/specialties')
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Listar especialidades de um médico' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, description: 'Lista paginada de especialidades.' })
@@ -77,6 +83,7 @@ export class DoctorsController {
   }
 
   @Post(':id/specialties')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Associar especialidade a um médico' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, description: 'Associação realizada.' })
@@ -90,10 +97,15 @@ export class DoctorsController {
       doctorId,
       dto.specialtyId,
     );
-    return { doctorId: association.doctorId, specialtyId: association.specialtyId, assignedAt: association.assignedAt };
+    return {
+      doctorId: association.doctorId,
+      specialtyId: association.specialtyId,
+      assignedAt: association.assignedAt,
+    };
   }
 
   @Delete(':id/specialties/:specialtyId')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Desassociar especialidade de um médico' })
   @ApiParam({ name: 'id', example: 1 })
@@ -108,18 +120,19 @@ export class DoctorsController {
   }
 
   @Get(':id/schedules')
-@ApiOperation({ summary: 'Listar agendamentos de um médico' })
-@ApiParam({ name: 'id', example: 1 })
-@ApiResponse({ status: 200, description: 'Lista paginada de agendamentos.' })
-@ApiResponse({ status: 404, description: 'Médico não encontrado.' })
-async findSchedules(
-  @Param('id', ParseIntPipe) id: number,
-  @Query() query: FindSchedulesQueryDto,
-) {
-  const result = await this.schedulesService.findByDoctor(id, query);
-  return {
-    data: result.data.map((s) => plainToInstance(ScheduleResponseDto, s)),
-    meta: result.meta,
-  };
-}
+  @Roles('ADMIN', 'DOCTOR')
+  @ApiOperation({ summary: 'Listar agendamentos de um médico' })
+  @ApiParam({ name: 'id', example: 1 })
+  @ApiResponse({ status: 200, description: 'Lista paginada de agendamentos.' })
+  @ApiResponse({ status: 404, description: 'Médico não encontrado.' })
+  async findSchedules(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: FindSchedulesQueryDto,
+  ) {
+    const result = await this.schedulesService.findByDoctor(id, query);
+    return {
+      data: result.data.map((s) => plainToInstance(ScheduleResponseDto, s)),
+      meta: result.meta,
+    };
+  }
 }
