@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { ProceduresModule } from './modules/procedures/procedures.module';
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { LoggingMiddleware } from './common/middlewares/logging.middleware';
 
 @Module({
@@ -38,6 +39,7 @@ import { LoggingMiddleware } from './common/middlewares/logging.middleware';
     AppointmentsModule,
     ProceduresModule,
     MedicalRecordsModule,
+    ReportsModule,
   ],
 })
 
