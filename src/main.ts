@@ -61,7 +61,7 @@ const config = new DocumentBuilder()
   // Serialização global — garante @Exclude/@Expose nos DTOs de resposta
   app.useGlobalInterceptors(
     new ClassSerializerInterceptor(reflector),
-     new TransformInterceptor()
+     new TransformInterceptor(reflector)
   );
 
   app.useGlobalGuards(
