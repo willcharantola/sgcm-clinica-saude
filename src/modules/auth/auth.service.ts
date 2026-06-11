@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { UserPayload } from '../../common/types/user-payload.type';
+import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -75,18 +76,18 @@ export class AuthService {
     return this.usersService.findOne(userId);
   }
 
-  private async generateTokens(userId: number, email: string, type: string) {
-    const payload: UserPayload = { sub: userId, email, type };
+private async generateTokens(userId: number, email: string, type: string) {
+  const payload: UserPayload = { sub: userId, email, type };
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
-      }),
-      this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN'),
-      }),
-    ]);
+  const [accessToken, refreshToken] = await Promise.all([
+    this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.getOrThrow<string>('JWT_EXPIRES_IN') as StringValue,
+    }),
+    this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN') as StringValue,
+    }),
+  ]);
 
-    return { accessToken, refreshToken };
-  }
+  return { accessToken, refreshToken };
+}
 }

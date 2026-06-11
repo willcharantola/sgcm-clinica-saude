@@ -13,6 +13,7 @@ import { LoggingMiddleware } from './common/middlewares/logging.middleware';
    
     ConfigModule.forRoot({
       isGlobal: true,
+        envFilePath: '.env',
       validationSchema: Joi.object({
         PORT: Joi.number().default(3000),
         DATABASE_PATH: Joi.string().default('./database.db'),
