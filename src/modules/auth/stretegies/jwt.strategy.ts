@@ -9,21 +9,14 @@ import { UserPayload } from '../../../common/types/user-payload.type';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     super({
-      // Extrai o token do cabeçalho Authorization: Bearer {token}
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // Rejeita tokens expirados — o guard vai capturar o erro
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      // getOrThrow lança erro na inicialização se a variável não existir,
+      // garantindo que secretOrKey nunca será undefined em runtime
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
-  /**
-   * Chamado pelo Passport após verificar assinatura e expiração.
-   * O retorno deste método é o que ficará em request.user.
-   * Optamos por NÃO consultar o banco aqui para manter a verificação
-   * em memória (performance). A limitação é que um usuário inativado
-   * após o login ainda terá acesso até o token expirar.
-   */
   async validate(payload: UserPayload): Promise<UserPayload> {
     if (!payload?.sub) {
       throw new UnauthorizedException('Token inválido.');
