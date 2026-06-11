@@ -1,6 +1,6 @@
 // src/modules/users/patients.controller.ts
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 
 import { UsersService } from './users.service';
@@ -10,8 +10,9 @@ import { FindSchedulesQueryDto } from '../schedules/dto/find-schedules-query.dto
 import { UserResponseDto } from './dto/user-response.dto';
 import { ScheduleResponseDto } from '../schedules/dto/schedule-response.dto';
 import { Roles } from '../../common/decorators/roles.decorators';
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
-@ApiBearerAuth('access-token')
+@ApiAuthResponses()
 @ApiTags('Patients')
 @Controller('patients')
 export class PatientsController {

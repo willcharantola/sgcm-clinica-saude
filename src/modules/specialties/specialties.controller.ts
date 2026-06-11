@@ -12,7 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
+  
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -28,8 +28,9 @@ import { SpecialtyResponseDto } from './dto/specialty-response.dto';
 import { FindUsersQueryDto } from '../users/dto/find-users-query.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { Roles } from '../../common/decorators/roles.decorators';
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
-@ApiBearerAuth('access-token')
+@ApiAuthResponses()
 @ApiTags('Specialties')
 @Controller('specialties')
 export class SpecialtiesController {

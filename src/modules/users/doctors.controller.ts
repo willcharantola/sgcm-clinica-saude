@@ -11,8 +11,9 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {  ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { ApiAuthResponses } from '../../common/decorators/api-auth-responses.decorator';
 
 import { UsersService } from './users.service';
 import { SpecialtiesService } from '../specialties/specialties.service';
@@ -26,7 +27,7 @@ import { FindSchedulesQueryDto } from '../schedules/dto/find-schedules-query.dto
 import { ScheduleResponseDto } from '../schedules/dto/schedule-response.dto';
 import {Roles} from '../../common/decorators/roles.decorators';
 
-@ApiBearerAuth('access-token')
+@ApiAuthResponses()
 @ApiTags('Doctors')
 @Controller('doctors')
 export class DoctorsController {
