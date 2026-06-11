@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -22,18 +23,20 @@ import { plainToInstance } from 'class-transformer';
 import { SpecialtiesService } from './specialties.service';
 import { CreateSpecialtyDto } from './dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from './dto/update-specialty.dto';
-import { AssociateSpecialtyDto } from './dto/associate-specialty.dto';
 import { FindSpecialtiesQueryDto } from './dto/find-specialties-query.dto';
 import { SpecialtyResponseDto } from './dto/specialty-response.dto';
 import { FindUsersQueryDto } from '../users/dto/find-users-query.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { Roles } from '../../common/decorators/roles.decorators';
 
+@ApiBearerAuth('access-token')
 @ApiTags('Specialties')
 @Controller('specialties')
 export class SpecialtiesController {
   constructor(private readonly specialtiesService: SpecialtiesService) {}
 
   @Post()
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar especialidade' })
   @ApiResponse({ status: 201, type: SpecialtyResponseDto })
@@ -45,6 +48,7 @@ export class SpecialtiesController {
   }
 
   @Get()
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Listar especialidades com paginação' })
   @ApiResponse({ status: 200, description: 'Lista paginada de especialidades.' })
   async findAll(@Query() query: FindSpecialtiesQueryDto) {
@@ -56,6 +60,7 @@ export class SpecialtiesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Buscar especialidade por ID' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, type: SpecialtyResponseDto })
@@ -68,6 +73,7 @@ export class SpecialtiesController {
   }
 
   @Put(':id')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Atualizar especialidade' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, type: SpecialtyResponseDto })
@@ -82,6 +88,7 @@ export class SpecialtiesController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Excluir especialidade',
@@ -96,6 +103,7 @@ export class SpecialtiesController {
   }
 
   @Get(':id/doctors')
+  @Roles('ADMIN', 'DOCTOR', 'PATIENT')
   @ApiOperation({ summary: 'Listar médicos de uma especialidade' })
   @ApiParam({ name: 'id', example: 1 })
   @ApiResponse({ status: 200, description: 'Lista paginada de médicos.' })

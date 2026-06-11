@@ -1,6 +1,8 @@
 // src/modules/schedules/schedules.service.ts
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,15 +17,14 @@ import { UsersService } from '../users/users.service';
 import { UserType } from '../users/entities/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { UpdateScheduleStatusDto, AllowedStatusTransition } from './dto/update-schedule-status.dto';
+import { UpdateScheduleStatusDto } from './dto/update-schedule-status.dto';
 import { FindSchedulesQueryDto } from './dto/find-schedules-query.dto';
-import { ConflictException } from '@nestjs/common';
+import { UserPayload } from '../../common/types/user-payload.type';
 
 // mapa das transições permitidas via API
 const ALLOWED_TRANSITIONS: Record<ScheduleStatus, ScheduleStatus[]> = {
   [ScheduleStatus.PENDING]: [ScheduleStatus.CONFIRMED, ScheduleStatus.CANCELLED],
   [ScheduleStatus.CONFIRMED]: [ScheduleStatus.CANCELLED],
-  // COMPLETED e CANCELLED não têm transições via API
   [ScheduleStatus.CANCELLED]: [],
   [ScheduleStatus.COMPLETED]: [],
 };
@@ -48,15 +49,25 @@ export class SchedulesService {
 
   // ─── criar ────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateScheduleDto): Promise<Schedule> {
-    // 1. valida data futura — verificado no service além do DTO
+  async create(dto: CreateScheduleDto, currentUser: UserPayload): Promise<Schedule> {
+    // PATIENT não escolhe o próprio patientId — é preenchido automaticamente
+    if (currentUser.type === 'PATIENT') {
+      dto.patientId = currentUser.sub;
+    }
+
+    // 1. valida data futura
     this.assertFutureDate(dto.scheduledAt);
 
-    // 2. valida médico
+    // 2. valida médico — PATIENT só pode agendar com médicos ativos
     const doctor = await this.usersService.findOneOrFail(dto.doctorId);
     if (doctor.type !== UserType.DOCTOR) {
       throw new BadRequestException(
         `O id ${dto.doctorId} não pertence a um médico.`,
+      );
+    }
+    if (!doctor.isActive) {
+      throw new BadRequestException(
+        `O médico com id ${dto.doctorId} não está ativo.`,
       );
     }
 
@@ -68,11 +79,11 @@ export class SchedulesService {
       );
     }
 
-    // 4. verifica conflito de horário — médico com CONFIRMED no mesmo horário
+    // 4. verifica conflito de horário
     await this.assertNoScheduleConflict(dto.doctorId, dto.scheduledAt);
 
-    // 5. persiste no subtipo correto
-    return this.persistSchedule(dto);
+    // 5. persiste com createdBy
+    return this.persistSchedule(dto, currentUser.sub);
   }
 
   // ─── listar ───────────────────────────────────────────────────────────────
@@ -112,17 +123,37 @@ export class SchedulesService {
 
   // ─── buscar por id ────────────────────────────────────────────────────────
 
-  async findOne(id: number): Promise<Schedule> {
+  // currentUser opcional para preservar callers internos (findOneOrFail, complete, etc.)
+  async findOne(id: number, currentUser?: UserPayload): Promise<Schedule> {
     const schedule = await this.scheduleRepository.findOneBy({ id });
     if (!schedule) {
-      throw new NotFoundException(
-        `Agendamento com id ${id} não foi encontrado.`,
-      );
+      throw new NotFoundException(`Agendamento com id ${id} não foi encontrado.`);
     }
+
+    // Controle por recurso: DOCTOR só vê os próprios; PATIENT só vê os próprios
+    if (currentUser) {
+      if (
+        currentUser.type === 'DOCTOR' &&
+        schedule.doctorId !== currentUser.sub
+      ) {
+        throw new ForbiddenException(
+          'Você não tem permissão para acessar este agendamento.',
+        );
+      }
+      if (
+        currentUser.type === 'PATIENT' &&
+        schedule.patientId !== currentUser.sub
+      ) {
+        throw new ForbiddenException(
+          'Você não tem permissão para acessar este agendamento.',
+        );
+      }
+    }
+
     return schedule;
   }
 
-  // método exposto para AppointmentsModule na Etapa 3
+  // método exposto para AppointmentsModule — sem controle de acesso
   async findOneOrFail(id: number): Promise<Schedule> {
     return this.findOne(id);
   }
@@ -150,12 +181,11 @@ export class SchedulesService {
 
     if (dto.scheduledAt) {
       this.assertFutureDate(dto.scheduledAt);
-      // revalida conflito se horário mudou
       if (dto.scheduledAt !== schedule.scheduledAt.toISOString()) {
         await this.assertNoScheduleConflict(
           schedule.doctorId,
           dto.scheduledAt,
-          id, // exclui o próprio agendamento da verificação
+          id,
         );
       }
     }
@@ -169,9 +199,18 @@ export class SchedulesService {
   async updateStatus(
     id: number,
     dto: UpdateScheduleStatusDto,
+    currentUser: UserPayload,
   ): Promise<Schedule> {
-    const schedule = await this.findOne(id);
+    // findOne já aplica controle por recurso para DOCTOR e PATIENT
+    const schedule = await this.findOne(id, currentUser);
     const newStatus = dto.status as unknown as ScheduleStatus;
+
+    // PATIENT só pode cancelar o próprio agendamento
+    if (currentUser.type === 'PATIENT' && newStatus !== ScheduleStatus.CANCELLED) {
+      throw new ForbiddenException(
+        'Pacientes só podem cancelar agendamentos.',
+      );
+    }
 
     // verifica se a transição é permitida
     const allowed = ALLOWED_TRANSITIONS[schedule.status];
@@ -182,7 +221,7 @@ export class SchedulesService {
       );
     }
 
-    // confirmação: verifica conflito de horário no momento de confirmar
+    // confirmação: verifica conflito de horário
     if (newStatus === ScheduleStatus.CONFIRMED) {
       await this.assertNoScheduleConflict(
         schedule.doctorId,
@@ -200,7 +239,7 @@ export class SchedulesService {
       }
       schedule.cancelledAt = new Date();
       schedule.cancellationReason = dto.cancellationReason;
-      // cancelledBy será preenchido na Etapa 2 com o usuário autenticado
+      schedule.cancelledById = currentUser.sub;
     }
 
     schedule.status = newStatus;
@@ -208,7 +247,6 @@ export class SchedulesService {
   }
 
   // ─── método interno para Etapa 3 (AppointmentsService) ───────────────────
-  // Não exposto como endpoint — chamado internamente ao criar um Appointment
 
   async complete(id: number): Promise<Schedule> {
     const schedule = await this.findOne(id);
@@ -228,7 +266,6 @@ export class SchedulesService {
   async remove(id: number): Promise<void> {
     const schedule = await this.findOne(id);
 
-    // agendamento COMPLETED originou atendimento — não pode ser removido
     if (schedule.status === ScheduleStatus.COMPLETED) {
       throw new ConflictException(
         `Agendamentos com status COMPLETED não podem ser excluídos pois originaram um atendimento clínico.`,
@@ -262,14 +299,12 @@ export class SchedulesService {
     scheduledAt: string,
     excludeId?: number,
   ): Promise<void> {
-    // conflito: mesmo médico, mesmo horário exato, status CONFIRMED
     const qb = this.scheduleRepository
       .createQueryBuilder('schedule')
       .where('schedule.doctorId = :doctorId', { doctorId })
       .andWhere('schedule.scheduledAt = :scheduledAt', { scheduledAt })
       .andWhere('schedule.status = :status', { status: ScheduleStatus.CONFIRMED });
 
-    // exclui o próprio agendamento ao atualizar
     if (excludeId) {
       qb.andWhere('schedule.id != :excludeId', { excludeId });
     }
@@ -282,12 +317,16 @@ export class SchedulesService {
     }
   }
 
-  private async persistSchedule(dto: CreateScheduleDto): Promise<Schedule> {
+  private async persistSchedule(
+    dto: CreateScheduleDto,
+    createdBy: number,
+  ): Promise<Schedule> {
     const base = {
       scheduledAt: new Date(dto.scheduledAt),
       doctorId: dto.doctorId,
       patientId: dto.patientId,
       status: ScheduleStatus.PENDING,
+      createdById: createdBy,
     };
 
     if (dto.type === ScheduleType.IN_PERSON) {
