@@ -6,6 +6,9 @@ import { UsersModule } from './modules/users/users.module';
 import { SpecialtiesModule } from './modules/specialties/specialties.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { ProceduresModule } from './modules/procedures/procedures.module';
+import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
 import { LoggingMiddleware } from './common/middlewares/logging.middleware';
 
 @Module({
@@ -32,6 +35,9 @@ import { LoggingMiddleware } from './common/middlewares/logging.middleware';
     SpecialtiesModule,
     SchedulesModule,
     AuthModule,
+    AppointmentsModule,
+    ProceduresModule,
+    MedicalRecordsModule,
   ],
 })
 
