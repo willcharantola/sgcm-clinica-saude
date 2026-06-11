@@ -7,7 +7,7 @@
  * é codificado em Base64 e pode ser lido por qualquer pessoa
  * que tenha o token.
  */
-export interface UserPayload {
+export class UserPayload {
   sub: number;    // ID do usuário (padrão JWT para "subject")
   email: string;  // Necessário para identificação em logs e respostas
   type: string;   // Perfil: 'ADMIN' | 'DOCTOR' | 'PATIENT'
